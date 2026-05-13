@@ -253,7 +253,6 @@ html, body {
   padding: 14px 18px 18px;
   z-index: 5;
   backdrop-filter: blur(6px);
-  position: relative;
 }
 #info-panel::before, #info-panel::after {
   content: '';
