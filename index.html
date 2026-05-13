@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>天体物理 // 交互式三维仿真</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- 启动加载层 -->
+    <div id="boot-overlay">
+      <div class="boot-frame">
+        <div class="boot-brand">ASTRO·SIM</div>
+        <div class="boot-sub">天 体 物 理 仿 真 终 端</div>
+        <div class="boot-bar"><div class="boot-bar-fill"></div></div>
+        <div class="boot-log" id="boot-log">[ 0.00 ] 系统启动中…</div>
+      </div>
+    </div>
+
+    <!-- 顶部导航 -->
+    <header id="hud-top">
+      <div class="hud-left">
+        <div class="brand">
+          <span class="brand-mark">◆</span>
+          <span class="brand-name">天体物理</span>
+          <span class="brand-ver">v0.2 · INTERSTELLAR</span>
+        </div>
+      </div>
+      <nav id="tabs">
+        <button data-scene="threebody" class="tab active">
+          <span class="tab-id">01</span><span class="tab-name">三体共振</span>
+        </button>
+        <button data-scene="lagrange" class="tab">
+          <span class="tab-id">02</span><span class="tab-name">拉格朗日势场</span>
+        </button>
+        <button data-scene="roche" class="tab">
+          <span class="tab-id">03</span><span class="tab-name">洛希撕裂</span>
+        </button>
+        <button data-scene="accretion" class="tab">
+          <span class="tab-id">04</span><span class="tab-name">引力透镜·吸积盘</span>
+        </button>
+      </nav>
+      <div class="hud-right">
+        <div class="status"><span class="dot"></span><span class="status-txt">链路稳定</span></div>
+        <div class="clock" id="utc-clock">UTC 00:00:00</div>
+      </div>
+    </header>
+
+    <!-- 主画布 -->
+    <canvas id="stage"></canvas>
+
+    <!-- 角点装饰 -->
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <!-- 罗盘 -->
+    <div id="compass">
+      <svg viewBox="-50 -50 100 100" width="100" height="100">
+        <circle cx="0" cy="0" r="42" fill="none" stroke="#00ffe155" stroke-width="0.6" />
+        <circle cx="0" cy="0" r="32" fill="none" stroke="#00ffe122" stroke-width="0.4" />
+        <line x1="-42" y1="0" x2="-36" y2="0" stroke="#00ffe1" stroke-width="0.6" />
+        <line x1="42" y1="0" x2="36" y2="0" stroke="#00ffe1" stroke-width="0.6" />
+        <line x1="0" y1="-42" x2="0" y2="-36" stroke="#00ffe1" stroke-width="0.6" />
+        <line x1="0" y1="42" x2="0" y2="36" stroke="#00ffe1" stroke-width="0.6" />
+        <text x="0" y="-44" fill="#00ffe1" font-size="6" text-anchor="middle">N</text>
+        <text x="44" y="2" fill="#00ffe155" font-size="6" text-anchor="middle">E</text>
+        <text x="0" y="48" fill="#00ffe155" font-size="6" text-anchor="middle">S</text>
+        <text x="-44" y="2" fill="#00ffe155" font-size="6" text-anchor="middle">W</text>
+        <g id="compass-needle">
+          <polygon points="0,-28 2,0 0,2 -2,0" fill="#ff6b00" />
+          <polygon points="0,28 2,0 0,-2 -2,0" fill="#ff6b0066" />
+        </g>
+      </svg>
+      <div class="compass-label">视角方位</div>
+    </div>
+
+    <!-- 右侧信息面板 -->
+    <aside id="info-panel">
+      <div class="panel-header">
+        <span class="panel-id">SCENE_0x01</span>
+        <span class="panel-tag">PHYSICS</span>
+      </div>
+      <h2 id="info-title">三体共振</h2>
+      <div class="panel-divider"></div>
+      <p id="info-body">三个互相引力作用的质点系统，无解析闭形式解。</p>
+      <div class="formula-block">
+        <div class="formula-label">控制方程</div>
+        <div class="formula" id="info-formula">
+          F<sub>ij</sub> = G · m<sub>i</sub>m<sub>j</sub> / r<sub>ij</sub><sup>2</sup>
+        </div>
+      </div>
+      <div class="param-list" id="param-list"></div>
+    </aside>
+
+    <!-- 左下遥测 -->
+    <div id="telemetry">
+      <div class="tm-header">
+        <span class="tm-title">▶ 实 时 遥 测</span>
+        <span class="tm-status">REC</span>
+      </div>
+      <div class="tm-grid">
+        <div class="tm-row"><span class="tm-k">帧 率</span><span class="tm-v" data-tm="fps">--</span><span class="tm-u">fps</span></div>
+        <div class="tm-row"><span class="tm-k">模拟时</span><span class="tm-v" data-tm="time">0.00</span><span class="tm-u">s</span></div>
+        <div class="tm-row"><span class="tm-k">天体数</span><span class="tm-v" data-tm="bodies">--</span><span class="tm-u">n</span></div>
+        <div class="tm-row"><span class="tm-k">总能量</span><span class="tm-v" data-tm="energy">--</span><span class="tm-u">J</span></div>
+        <div class="tm-row"><span class="tm-k">帧间隔</span><span class="tm-v" data-tm="dt">--</span><span class="tm-u">ms</span></div>
+        <div class="tm-row"><span class="tm-k">视距</span><span class="tm-v" data-tm="dist">--</span><span class="tm-u">u</span></div>
+      </div>
+      <div class="tm-bar">
+        <div class="tm-bar-label">运行负载</div>
+        <div class="tm-bar-track"><div class="tm-bar-fill" id="load-bar"></div></div>
+      </div>
+    </div>
+
+    <!-- 右下参数控制面板 -->
+    <div id="control-panel">
+      <div class="ctrl-header">▶ 参 数 调 节</div>
+      <div class="ctrl-row">
+        <label>时间倍率</label>
+        <input type="range" id="ctrl-timescale" min="0" max="3" step="0.05" value="1" />
+        <span class="ctrl-val" id="val-timescale">1.00×</span>
+      </div>
+      <div class="ctrl-row">
+        <label>辉光强度</label>
+        <input type="range" id="ctrl-bloom" min="0" max="2.5" step="0.05" value="1.1" />
+        <span class="ctrl-val" id="val-bloom">1.10</span>
+      </div>
+      <div class="ctrl-row">
+        <label>暴露曝光</label>
+        <input type="range" id="ctrl-exposure" min="0.3" max="2.5" step="0.05" value="1.0" />
+        <span class="ctrl-val" id="val-exposure">1.00</span>
+      </div>
+      <div class="ctrl-btn-row">
+        <button id="btn-pause">⏸ 暂停</button>
+        <button id="btn-reset">↻ 重置</button>
+        <button id="btn-screenshot">⬇ 截图</button>
+      </div>
+    </div>
+
+    <!-- 底部键位提示 -->
+    <div id="key-hint">
+      <span><kbd>左键拖拽</kbd> 旋转视角</span>
+      <span class="sep">·</span>
+      <span><kbd>滚轮</kbd> 缩放</span>
+      <span class="sep">·</span>
+      <span><kbd>右键</kbd> 平移</span>
+      <span class="sep">·</span>
+      <span><kbd>空格</kbd> 暂停</span>
+      <span class="sep">·</span>
+      <span><kbd>1-4</kbd> 切换场景</span>
+    </div>
+
+    <!-- CRT 扫描线 -->
+    <div id="scanlines"></div>
+    <div id="vignette"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
